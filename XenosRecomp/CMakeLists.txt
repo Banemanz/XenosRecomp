@@ -45,6 +45,11 @@ if (WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:XenosRecomp> $<TARGET_FILE_DIR:XenosRecomp>
         COMMAND_EXPAND_LISTS
     )
+
+    add_executable(XenosRecompGui WIN32 gui_win32.cpp)
+    target_compile_definitions(XenosRecompGui PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_link_libraries(XenosRecompGui PRIVATE shell32 comdlg32)
+    add_dependencies(XenosRecompGui XenosRecomp)
 endif()
 
 if (XENOS_RECOMP_DXIL)

@@ -26,10 +26,10 @@ struct PushConstants
 
 [[vk::push_constant]] ConstantBuffer<PushConstants> g_PushConstants;
 
-#define g_Booleans                 vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 256)
-#define g_SwappedTexcoords         vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 260)
-#define g_HalfPixelOffset          vk::RawBufferLoad<float2>(g_PushConstants.SharedConstants + 264)
-#define g_AlphaThreshold           vk::RawBufferLoad<float>(g_PushConstants.SharedConstants + 272)
+#define g_Booleans                 vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 512)
+#define g_SwappedTexcoords         vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 516)
+#define g_HalfPixelOffset          vk::RawBufferLoad<float2>(g_PushConstants.SharedConstants + 520)
+#define g_AlphaThreshold           vk::RawBufferLoad<float>(g_PushConstants.SharedConstants + 528)
 
 [[vk::constant_id(0)]] const uint g_SpecConstants = 0;
 
@@ -38,10 +38,10 @@ struct PushConstants
 #else
 
 #define DEFINE_SHARED_CONSTANTS() \
-    uint g_Booleans : packoffset(c16.x); \
-    uint g_SwappedTexcoords : packoffset(c16.y); \
-    float2 g_HalfPixelOffset : packoffset(c16.z); \
-    float g_AlphaThreshold : packoffset(c17.x);
+    uint g_Booleans : packoffset(c32.x); \
+    uint g_SwappedTexcoords : packoffset(c32.y); \
+    float2 g_HalfPixelOffset : packoffset(c32.z); \
+    float g_AlphaThreshold : packoffset(c33.x);
 
 uint g_SpecConstants();
 
@@ -59,10 +59,37 @@ uint2 getTexture2DDimensions(Texture2D<float4> texture)
     return dimensions;
 }
 
+float4 sampleTexture2D(Texture2D<float4> texture, SamplerState samplerState, float2 texCoord)
+{
+#ifdef XENOS_RECOMP_VERTEX_SHADER
+    return texture.SampleLevel(samplerState, texCoord, 0.0);
+#else
+    return texture.Sample(samplerState, texCoord);
+#endif
+}
+
+float4 sampleTexture3D(Texture3D<float4> texture, SamplerState samplerState, float3 texCoord)
+{
+#ifdef XENOS_RECOMP_VERTEX_SHADER
+    return texture.SampleLevel(samplerState, texCoord, 0.0);
+#else
+    return texture.Sample(samplerState, texCoord);
+#endif
+}
+
+float4 sampleTextureCube(TextureCube<float4> texture, SamplerState samplerState, float3 texCoord)
+{
+#ifdef XENOS_RECOMP_VERTEX_SHADER
+    return texture.SampleLevel(samplerState, texCoord, 0.0);
+#else
+    return texture.Sample(samplerState, texCoord);
+#endif
+}
+
 float4 tfetch2D(uint resourceDescriptorIndex, uint samplerDescriptorIndex, float2 texCoord, float2 offset)
 {
     Texture2D<float4> texture = g_Texture2DDescriptorHeap[resourceDescriptorIndex];
-    return texture.Sample(g_SamplerDescriptorHeap[samplerDescriptorIndex], texCoord + offset / getTexture2DDimensions(texture));
+    return sampleTexture2D(texture, g_SamplerDescriptorHeap[samplerDescriptorIndex], texCoord + offset / getTexture2DDimensions(texture));
 }
 
 float2 getWeights2D(uint resourceDescriptorIndex, uint samplerDescriptorIndex, float2 texCoord, float2 offset)
@@ -135,17 +162,17 @@ float4 tfetch2DBicubic(uint resourceDescriptorIndex, uint samplerDescriptorIndex
     float h1y = h1(fy);
 
     float4 r =
-        g0(fy) * (g0x * texture.Sample(samplerState, float2(px + h0x, py + h0y) / float2(dimensions)) +
-            g1x * texture.Sample(samplerState, float2(px + h1x, py + h0y) / float2(dimensions))) +
-        g1(fy) * (g0x * texture.Sample(samplerState, float2(px + h0x, py + h1y) / float2(dimensions)) +
-            g1x * texture.Sample(samplerState, float2(px + h1x, py + h1y) / float2(dimensions)));
+        g0(fy) * (g0x * sampleTexture2D(texture, samplerState, float2(px + h0x, py + h0y) / float2(dimensions)) +
+            g1x * sampleTexture2D(texture, samplerState, float2(px + h1x, py + h0y) / float2(dimensions))) +
+        g1(fy) * (g0x * sampleTexture2D(texture, samplerState, float2(px + h0x, py + h1y) / float2(dimensions)) +
+            g1x * sampleTexture2D(texture, samplerState, float2(px + h1x, py + h1y) / float2(dimensions)));
 
     return r;
 }
 
 float4 tfetch3D(uint resourceDescriptorIndex, uint samplerDescriptorIndex, float3 texCoord)
 {
-    return g_Texture3DDescriptorHeap[resourceDescriptorIndex].Sample(g_SamplerDescriptorHeap[samplerDescriptorIndex], texCoord);
+    return sampleTexture3D(g_Texture3DDescriptorHeap[resourceDescriptorIndex], g_SamplerDescriptorHeap[samplerDescriptorIndex], texCoord);
 }
 
 struct CubeMapData
@@ -156,7 +183,7 @@ struct CubeMapData
 
 float4 tfetchCube(uint resourceDescriptorIndex, uint samplerDescriptorIndex, float3 texCoord, inout CubeMapData cubeMapData)
 {
-    return g_TextureCubeDescriptorHeap[resourceDescriptorIndex].Sample(g_SamplerDescriptorHeap[samplerDescriptorIndex], cubeMapData.cubeMapDirections[texCoord.z]);
+    return sampleTextureCube(g_TextureCubeDescriptorHeap[resourceDescriptorIndex], g_SamplerDescriptorHeap[samplerDescriptorIndex], cubeMapData.cubeMapDirections[texCoord.z]);
 }
 
 float4 tfetchR11G11B10(uint4 value)
