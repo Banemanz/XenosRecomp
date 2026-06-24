@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ubuntu-clang:
     name: Ubuntu Clang
     runs-on: ubuntu-latest
 
@@ -42,4 +42,30 @@ jobs:
         with:
           name: XenosRecomp-ubuntu-clang
           path: build/XenosRecomp/XenosRecomp
+          if-no-files-found: error
+
+  windows-msvc:
+    name: Windows MSVC
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: XenosRecomp-windows-msvc
+          path: |
+            build/XenosRecomp/Release/XenosRecomp.exe
+            build/XenosRecomp/Release/XenosRecompGui.exe
+            build/XenosRecomp/Release/*.dll
           if-no-files-found: error
