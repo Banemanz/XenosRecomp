@@ -1110,6 +1110,28 @@ void ShaderRecompiler::recompile(const uint8_t* shaderData, const std::string_vi
     out += include;
     out += '\n';
 
+    out += R"(
+#undef g_Booleans
+#undef g_SwappedTexcoords
+#undef g_HalfPixelOffset
+#undef g_AlphaThreshold
+#undef DEFINE_SHARED_CONSTANTS
+
+#ifdef __spirv__
+#define g_Booleans                 vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 512)
+#define g_SwappedTexcoords         vk::RawBufferLoad<uint>(g_PushConstants.SharedConstants + 516)
+#define g_HalfPixelOffset          vk::RawBufferLoad<float2>(g_PushConstants.SharedConstants + 520)
+#define g_AlphaThreshold           vk::RawBufferLoad<float>(g_PushConstants.SharedConstants + 528)
+#else
+#define DEFINE_SHARED_CONSTANTS() \
+    uint g_Booleans : packoffset(c32.x); \
+    uint g_SwappedTexcoords : packoffset(c32.y); \
+    float2 g_HalfPixelOffset : packoffset(c32.z); \
+    float g_AlphaThreshold : packoffset(c33.x);
+#endif
+
+)";
+
     isPixelShader = (shaderContainer->flags & 0x1) == 0;
 
     const auto constantTableContainer = reinterpret_cast<const ConstantTableContainer*>(shaderData + shaderContainer->constantTableOffset);
