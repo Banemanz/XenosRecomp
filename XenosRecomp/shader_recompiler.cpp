@@ -1107,8 +1107,23 @@ void ShaderRecompiler::recompile(const uint8_t* shaderData, const std::string_vi
     assert((shaderContainer->flags & 0xFFFFFF00) == 0x102A1100);
     assert(shaderContainer->constantTableOffset != NULL);
 
+    isPixelShader = (shaderContainer->flags & 0x1) == 0;
+
+    if (isPixelShader)
+    {
+        out += "#define XENOS_RECOMP_PIXEL_SHADER 1\n";
+    }
+    else
+    {
+        out += "#define XENOS_RECOMP_VERTEX_SHADER 1\n";
+        out += "#define Sample(SAMPLER_STATE, TEXCOORD) SampleLevel(SAMPLER_STATE, TEXCOORD, 0.0)\n";
+    }
+
     out += include;
     out += '\n';
+
+    if (!isPixelShader)
+        out += "#undef Sample\n";
 
     out += R"(
 #undef g_Booleans
@@ -1131,8 +1146,6 @@ void ShaderRecompiler::recompile(const uint8_t* shaderData, const std::string_vi
 #endif
 
 )";
-
-    isPixelShader = (shaderContainer->flags & 0x1) == 0;
 
     const auto constantTableContainer = reinterpret_cast<const ConstantTableContainer*>(shaderData + shaderContainer->constantTableOffset);
     constantTableData = reinterpret_cast<const uint8_t*>(&constantTableContainer->constantTable);
