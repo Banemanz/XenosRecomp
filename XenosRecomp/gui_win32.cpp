@@ -52,7 +52,7 @@ HWND createLabel(HWND parent, const wchar_t* text, int x, int y, int width, int 
 HWND createEdit(HWND parent, int id, int x, int y, int width, int height)
 {
     HWND edit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-        x, y, width, height, parent, reinterpret_cast<HMENU>(id), g_instance, nullptr);
+        x, y, width, height, parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), g_instance, nullptr);
     setControlFont(edit);
     return edit;
 }
@@ -60,7 +60,7 @@ HWND createEdit(HWND parent, int id, int x, int y, int width, int height)
 HWND createButton(HWND parent, const wchar_t* text, int id, int x, int y, int width, int height)
 {
     HWND button = CreateWindowExW(0, L"BUTTON", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-        x, y, width, height, parent, reinterpret_cast<HMENU>(id), g_instance, nullptr);
+        x, y, width, height, parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), g_instance, nullptr);
     setControlFont(button);
     return button;
 }
@@ -255,7 +255,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
     WNDCLASSW windowClass = {};
     windowClass.lpfnWndProc = windowProc;
     windowClass.hInstance = instance;
-    windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    windowClass.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
     windowClass.lpszClassName = L"XenosRecompGuiWindow";
 
